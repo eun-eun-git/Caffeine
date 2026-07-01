@@ -32,6 +32,10 @@
   pointer-events: none;
 }
 
+.ad-banner--middle {
+  border-radius: 14px;
+}
+
 .card {
   flex: 1;
   width: 100%;
@@ -76,6 +80,30 @@
   box-shadow: 0 2px 10px rgba(46, 125, 50, 0.08);
   border: 1px solid #e8f5e9;
   min-width: 0;
+}
+
+.entries-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.entries-head-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #2e7d32;
+}
+
+.reset-btn {
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #9a8b6f;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 .entry {
@@ -302,6 +330,44 @@
   font-size: 12px;
   font-weight: 700;
   text-align: right;
+}
+
+.daily-limit {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f1f8f2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.daily-limit-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #33502f;
+}
+
+.daily-limit-bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 6px;
+  background: #dcefdd;
+  overflow: hidden;
+}
+
+.daily-limit-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+.daily-limit-warning {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #e53935;
 }
 
 .breakdown {

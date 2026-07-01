@@ -31,6 +31,7 @@ export const HALF_LIFE_HOURS = 5
 const ZERO_THRESHOLD_MG = 1
 const SLEEP_WARNING_THRESHOLD_MG = 20
 const SLEEP_HOUR = 23 // 11 PM
+export const FDA_DAILY_LIMIT_MG = 400 // FDA healthy-adult guidance
 
 export function nowAsHHMM(date = new Date()) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
@@ -102,6 +103,7 @@ export function calculateCaffeine(entries, now) {
   return {
     remaining: Math.round(Math.max(0, remainingNow)),
     percent: Math.max(0, Math.min(100, percent)),
+    totalDose,
     zeroDate: new Date(hi),
     showSleepWarning: remainingAtSleep > SLEEP_WARNING_THRESHOLD_MG,
     breakdown: doses.map((d, i) => ({

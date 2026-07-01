@@ -1,5 +1,13 @@
 import React, { useEffect, useRef } from 'react'
 
+// Each placement should use its own AdSense ad unit/slot ID once real ones
+// are issued — replace these placeholders in your AdSense dashboard.
+const SLOT_BY_POSITION = {
+  top: '0000000001',
+  middle: '0000000002',
+  bottom: '0000000003',
+}
+
 function AdBanner({ position }) {
   const insRef = useRef(null)
 
@@ -19,7 +27,7 @@ function AdBanner({ position }) {
         className="adsbygoogle"
         style={{ display: 'block', width: '100%', height: '60px' }}
         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-        data-ad-slot="0000000000"
+        data-ad-slot={SLOT_BY_POSITION[position] ?? '0000000000'}
         data-ad-format="auto"
         data-full-width-responsive="true"
       />

@@ -1,16 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import AdBanner from './AdBanner.jsx'
 import DrinkEntry from './DrinkEntry.jsx'
-import { DRINKS, calculateCaffeine, doseOf, formatAmPm, nowAsHHMM, statusOf } from './caffeine.js'
+import { DRINKS, FDA_DAILY_LIMIT_MG, calculateCaffeine, doseOf, formatAmPm, nowAsHHMM, statusOf } from './caffeine.js'
 import './App.css'
+
+const STORAGE_KEY = 'caffeine-calc-entries'
 
 let nextId = 1
 function makeEntry() {
   return { id: nextId++, drinkIndex: 0, time: nowAsHHMM(), customMg: '' }
 }
 
+function loadSavedEntries() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const saved = raw ? JSON.parse(raw) : null
+    if (!Array.isArray(saved) || saved.length === 0) return null
+    return saved.map((e) => ({ ...e, id: nextId++ }))
+  } catch {
+    return null
+  }
+}
+
 function App() {
-  const [entries, setEntries] = useState([makeEntry()])
+  const [entries, setEntries] = useState(() => loadSavedEntries() ?? [makeEntry()])
   const [snapshot, setSnapshot] = useState(null) // frozen entries at calc time
   const [now, setNow] = useState(new Date())
 
@@ -20,6 +33,10 @@ function App() {
     return () => clearInterval(id)
   }, [snapshot])
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
+  }, [entries])
+
   const totalDose = entries.reduce((sum, e) => sum + doseOf(e), 0)
 
   const updateEntry = (id, patch) => {
@@ -28,6 +45,10 @@ function App() {
 
   const addEntry = () => setEntries((prev) => [...prev, makeEntry()])
   const removeEntry = (id) => setEntries((prev) => (prev.length > 1 ? prev.filter((e) => e.id !== id) : prev))
+  const resetEntries = () => {
+    setEntries([makeEntry()])
+    setSnapshot(null)
+  }
 
   const handleCalculate = () => {
     setNow(new Date())
@@ -49,6 +70,13 @@ function App() {
         </header>
 
         <div className="entries">
+          <div className="entries-head">
+            <span className="entries-head-title">섭취 내역</span>
+            <button className="reset-btn" onClick={resetEntries}>
+              초기화
+            </button>
+          </div>
+
           {entries.map((entry, idx) => (
             <DrinkEntry
               key={entry.id}
@@ -68,6 +96,8 @@ function App() {
         <p className="disclaimer">
           ※ 브랜드/사이즈/추출 방식에 따라 카페인 함량은 크게 달라질 수 있어요. 정확한 값을 알고 있다면 "직접 입력"을 이용하세요.
         </p>
+
+        <AdBanner position="middle" />
 
         <button className="calc-btn" onClick={handleCalculate} disabled={totalDose <= 0}>
           계산하기 🧮
@@ -89,6 +119,27 @@ function App() {
             <p className="status-label" style={{ color: status.color }}>
               {status.label}
             </p>
+
+            <div className="daily-limit">
+              <div className="daily-limit-head">
+                <span>오늘 총 섭취량</span>
+                <span>
+                  {computed.totalDose}mg / {FDA_DAILY_LIMIT_MG}mg
+                </span>
+              </div>
+              <div className="daily-limit-bar">
+                <div
+                  className="daily-limit-fill"
+                  style={{
+                    width: `${Math.min(100, (computed.totalDose / FDA_DAILY_LIMIT_MG) * 100)}%`,
+                    background: computed.totalDose > FDA_DAILY_LIMIT_MG ? '#e53935' : '#66bb6a',
+                  }}
+                />
+              </div>
+              {computed.totalDose > FDA_DAILY_LIMIT_MG && (
+                <p className="daily-limit-warning">FDA 권장 1일 섭취 한도(400mg)를 초과했어요.</p>
+              )}
+            </div>
 
             {computed.breakdown.length > 1 && (
               <ul className="breakdown">
