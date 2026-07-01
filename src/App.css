@@ -1,0 +1,145 @@
+.page {
+  width: 100%;
+  max-width: 400px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff8ec;
+}
+
+.ad-banner {
+  width: 100%;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+
+.card {
+  flex: 1;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #2e7d32;
+  text-align: center;
+}
+
+.subtitle {
+  margin: 0 0 6px;
+  text-align: center;
+  font-size: 13px;
+  color: #7a8b7c;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #33502f;
+}
+
+.field select,
+.field input[type='time'] {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid #c8e6c9;
+  background: #fff;
+  font-size: 15px;
+  color: #333;
+  outline: none;
+}
+
+.field select:focus,
+.field input[type='time']:focus {
+  border-color: #66bb6a;
+}
+
+.calc-btn {
+  margin-top: 6px;
+  padding: 14px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #66bb6a, #43a047);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #2e7d32;
+  transition: transform 0.05s ease;
+}
+
+.calc-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #2e7d32;
+}
+
+.result {
+  margin-top: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #fff3e0;
+  border: 2px dashed #ffb74d;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: pop 0.25s ease;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.result-line {
+  margin: 0;
+  font-size: 14px;
+  color: #5d4037;
+}
+
+.result-line strong {
+  color: #e65100;
+  font-size: 16px;
+}
+
+.bar-wrap {
+  width: 100%;
+  height: 18px;
+  border-radius: 10px;
+  background: #eeeeee;
+  overflow: hidden;
+  border: 2px solid #ffe0b2;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+.warning {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #ffebee;
+  color: #c62828;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  border: 2px solid #ef9a9a;
+}
