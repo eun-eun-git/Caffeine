@@ -1,78 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import AdBanner from './AdBanner.jsx'
+import DrinkEntry from './DrinkEntry.jsx'
+import { DRINKS, calculateCaffeine, doseOf, formatAmPm, nowAsHHMM, statusOf } from './caffeine.js'
 import './App.css'
-
-// mg values are per-serving reference points gathered from brand nutrition
-// disclosures (see references footer in the UI). Actual content varies by
-// extraction, batch, and cup size, so a "직접 입력" option is always offered.
-const DRINK_GROUPS = [
-  {
-    label: '커피 (브랜드별 아메리카노)',
-    items: [
-      { name: '스타벅스 아메리카노 (Tall)', mg: 150, emoji: '☕' },
-      { name: '이디야 아메리카노 (L)', mg: 232, emoji: '☕' },
-      { name: '메가커피 아메리카노 (24oz)', mg: 193, emoji: '☕' },
-      { name: '컴포즈커피 아메리카노', mg: 26, emoji: '☕' },
-      { name: '커피 (홈브루/직접 내림)', mg: 95, emoji: '🍵' },
-    ],
-  },
-  {
-    label: '기타 음료',
-    items: [
-      { name: '라떼', mg: 50, emoji: '🥛' },
-      { name: '콜라', mg: 34, emoji: '🥤' },
-      { name: '초콜릿', mg: 12, emoji: '🍫' },
-      { name: '에너지음료 (레드불)', mg: 80, emoji: '⚡' },
-      { name: '차', mg: 25, emoji: '🍃' },
-    ],
-  },
-]
-
-const DRINKS = DRINK_GROUPS.flatMap((g) => g.items)
-const CUSTOM_INDEX = DRINKS.length // sentinel: "직접 입력"
-
-const HALF_LIFE_HOURS = 5
-const ZERO_THRESHOLD_MG = 1
-const SLEEP_WARNING_THRESHOLD_MG = 20
-const SLEEP_HOUR = 23 // 11 PM
 
 let nextId = 1
 function makeEntry() {
   return { id: nextId++, drinkIndex: 0, time: nowAsHHMM(), customMg: '' }
-}
-
-function nowAsHHMM() {
-  const d = new Date()
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-
-function formatAmPm(date) {
-  let h = date.getHours()
-  const m = date.getMinutes()
-  const ampm = h < 12 ? '오전' : '오후'
-  h = h % 12
-  if (h === 0) h = 12
-  return `${ampm} ${h}:${String(m).padStart(2, '0')}`
-}
-
-// HH:MM -> Date, choosing today or yesterday so the intake is always in the past
-function toIntakeDate(timeStr, reference) {
-  const [h, m] = timeStr.split(':').map(Number)
-  const d = new Date(reference)
-  d.setHours(h, m, 0, 0)
-  if (d > reference) d.setDate(d.getDate() - 1)
-  return d
-}
-
-function doseOf(entry) {
-  if (entry.drinkIndex === CUSTOM_INDEX) return Number(entry.customMg) || 0
-  return DRINKS[entry.drinkIndex].mg
-}
-
-function remainingAt(doseMg, intakeDate, t) {
-  const elapsedHours = (t - intakeDate) / (1000 * 60 * 60)
-  if (elapsedHours <= 0) return 0
-  return doseMg * Math.pow(0.5, elapsedHours / HALF_LIFE_HOURS)
 }
 
 function App() {
@@ -86,6 +20,8 @@ function App() {
     return () => clearInterval(id)
   }, [snapshot])
 
+  const totalDose = entries.reduce((sum, e) => sum + doseOf(e), 0)
+
   const updateEntry = (id, patch) => {
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)))
   }
@@ -98,44 +34,8 @@ function App() {
     setSnapshot(entries.map((e) => ({ ...e })))
   }
 
-  const computed = useMemo(() => {
-    if (!snapshot) return null
-
-    const doses = snapshot.map((e) => ({
-      dose: doseOf(e),
-      intakeDate: toIntakeDate(e.time, now),
-    }))
-    const totalDose = doses.reduce((sum, d) => sum + d.dose, 0)
-
-    const totalRemainingAt = (t) => doses.reduce((sum, d) => sum + remainingAt(d.dose, d.intakeDate, t), 0)
-
-    const remainingNow = totalRemainingAt(now)
-    const percent = totalDose > 0 ? Math.round((remainingNow / totalDose) * 100) : 0
-
-    // binary search for the moment total caffeine drops below the "gone" threshold
-    const latestIntake = new Date(Math.max(...doses.map((d) => d.intakeDate.getTime())))
-    let lo = latestIntake.getTime()
-    let hi = latestIntake.getTime() + 200 * 60 * 60 * 1000
-    for (let i = 0; i < 50; i++) {
-      const mid = (lo + hi) / 2
-      if (totalRemainingAt(new Date(mid)) > ZERO_THRESHOLD_MG) lo = mid
-      else hi = mid
-    }
-    const zeroDate = new Date(hi)
-
-    const sleepRef = new Date(latestIntake)
-    sleepRef.setHours(SLEEP_HOUR, 0, 0, 0)
-    if (sleepRef < latestIntake) sleepRef.setDate(sleepRef.getDate() + 1)
-    const remainingAtSleep = totalRemainingAt(sleepRef)
-    const showSleepWarning = remainingAtSleep > SLEEP_WARNING_THRESHOLD_MG
-
-    return {
-      remaining: Math.round(Math.max(0, remainingNow)),
-      percent: Math.max(0, Math.min(100, percent)),
-      zeroDate,
-      showSleepWarning,
-    }
-  }, [snapshot, now])
+  const computed = useMemo(() => (snapshot ? calculateCaffeine(snapshot, now) : null), [snapshot, now])
+  const status = computed ? statusOf(computed.percent) : null
 
   return (
     <div className="page">
@@ -150,56 +50,14 @@ function App() {
 
         <div className="entries">
           {entries.map((entry, idx) => (
-            <div className="entry" key={entry.id}>
-              <div className="entry-head">
-                <span className="entry-index">{idx + 1}</span>
-                <span className="entry-title">마신 음료</span>
-                {entries.length > 1 && (
-                  <button className="remove-btn" onClick={() => removeEntry(entry.id)} aria-label="삭제">
-                    ✕
-                  </button>
-                )}
-              </div>
-
-              <select
-                className="entry-select"
-                value={entry.drinkIndex}
-                onChange={(e) => updateEntry(entry.id, { drinkIndex: Number(e.target.value) })}
-              >
-                {DRINK_GROUPS.map((group) => (
-                  <optgroup label={group.label} key={group.label}>
-                    {group.items.map((d) => {
-                      const globalIndex = DRINKS.indexOf(d)
-                      return (
-                        <option key={d.name} value={globalIndex}>
-                          {d.emoji} {d.name} ({d.mg}mg)
-                        </option>
-                      )
-                    })}
-                  </optgroup>
-                ))}
-                <option value={CUSTOM_INDEX}>✏️ 직접 입력 (mg)</option>
-              </select>
-
-              <div className="entry-row2">
-                {entry.drinkIndex === CUSTOM_INDEX && (
-                  <input
-                    className="entry-custom-mg"
-                    type="number"
-                    min="0"
-                    placeholder="mg 입력"
-                    value={entry.customMg}
-                    onChange={(e) => updateEntry(entry.id, { customMg: e.target.value })}
-                  />
-                )}
-                <input
-                  className="entry-time"
-                  type="time"
-                  value={entry.time}
-                  onChange={(e) => updateEntry(entry.id, { time: e.target.value })}
-                />
-              </div>
-            </div>
+            <DrinkEntry
+              key={entry.id}
+              entry={entry}
+              index={idx}
+              canRemove={entries.length > 1}
+              onChange={(patch) => updateEntry(entry.id, patch)}
+              onRemove={() => removeEntry(entry.id)}
+            />
           ))}
 
           <button className="add-btn" onClick={addEntry}>
@@ -211,7 +69,7 @@ function App() {
           ※ 브랜드/사이즈/추출 방식에 따라 카페인 함량은 크게 달라질 수 있어요. 정확한 값을 알고 있다면 "직접 입력"을 이용하세요.
         </p>
 
-        <button className="calc-btn" onClick={handleCalculate}>
+        <button className="calc-btn" onClick={handleCalculate} disabled={totalDose <= 0}>
           계산하기 🧮
         </button>
 
@@ -225,20 +83,23 @@ function App() {
             </p>
 
             <div className="bar-wrap">
-              <div
-                className="bar-fill"
-                style={{
-                  width: `${computed.percent}%`,
-                  background:
-                    computed.percent > 60
-                      ? '#ff9800'
-                      : computed.percent > 25
-                      ? '#ffb74d'
-                      : '#66bb6a',
-                }}
-              />
+              <div className="bar-fill" style={{ width: `${computed.percent}%`, background: status.color }} />
               <span className="bar-label">{computed.percent}%</span>
             </div>
+            <p className="status-label" style={{ color: status.color }}>
+              {status.label}
+            </p>
+
+            {computed.breakdown.length > 1 && (
+              <ul className="breakdown">
+                {computed.breakdown.map((b) => (
+                  <li key={b.id}>
+                    {DRINKS[b.drinkIndex]?.emoji ?? '✏️'} {DRINKS[b.drinkIndex]?.name ?? '직접 입력'} · {b.time} →
+                    현재 {b.remaining}mg
+                  </li>
+                ))}
+              </ul>
+            )}
 
             {computed.showSleepWarning && (
               <div className="warning">

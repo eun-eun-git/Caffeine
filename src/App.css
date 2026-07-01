@@ -171,6 +171,22 @@
   min-width: 0;
 }
 
+.now-btn {
+  flex-shrink: 0;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 2px solid #e0f2e1;
+  background: #f1f8f2;
+  color: #2e7d32;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.now-btn:active {
+  background: #dcefdd;
+}
+
 .add-btn {
   padding: 10px;
   border-radius: 12px;
@@ -209,6 +225,13 @@
 .calc-btn:active {
   transform: translateY(2px);
   box-shadow: 0 2px 0 #e65100;
+}
+
+.calc-btn:disabled {
+  background: #e0e0e0;
+  color: #9e9e9e;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .result {
@@ -272,6 +295,26 @@
   font-size: 11px;
   font-weight: 700;
   color: #5d4037;
+}
+
+.status-label {
+  margin: -2px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.breakdown {
+  margin: 0;
+  padding: 8px 10px;
+  list-style: none;
+  background: #fffaf2;
+  border-radius: 10px;
+  font-size: 11.5px;
+  color: #7a6650;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .warning {
