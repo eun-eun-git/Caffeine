@@ -2,15 +2,34 @@ import React, { useEffect, useMemo, useState } from 'react'
 import AdBanner from './AdBanner.jsx'
 import './App.css'
 
-const DRINKS = [
-  { name: '아메리카노', mg: 75, emoji: '☕' },
-  { name: '라떼', mg: 50, emoji: '🥛' },
-  { name: '콜라', mg: 34, emoji: '🥤' },
-  { name: '초콜릿', mg: 12, emoji: '🍫' },
-  { name: '에너지음료 (레드불)', mg: 80, emoji: '⚡' },
-  { name: '커피 (홈브루)', mg: 95, emoji: '🍵' },
-  { name: '차', mg: 25, emoji: '🍃' },
+// mg values are per-serving reference points gathered from brand nutrition
+// disclosures (see references footer in the UI). Actual content varies by
+// extraction, batch, and cup size, so a "직접 입력" option is always offered.
+const DRINK_GROUPS = [
+  {
+    label: '커피 (브랜드별 아메리카노)',
+    items: [
+      { name: '스타벅스 아메리카노 (Tall)', mg: 150, emoji: '☕' },
+      { name: '이디야 아메리카노 (L)', mg: 232, emoji: '☕' },
+      { name: '메가커피 아메리카노 (24oz)', mg: 193, emoji: '☕' },
+      { name: '컴포즈커피 아메리카노', mg: 26, emoji: '☕' },
+      { name: '커피 (홈브루/직접 내림)', mg: 95, emoji: '🍵' },
+    ],
+  },
+  {
+    label: '기타 음료',
+    items: [
+      { name: '라떼', mg: 50, emoji: '🥛' },
+      { name: '콜라', mg: 34, emoji: '🥤' },
+      { name: '초콜릿', mg: 12, emoji: '🍫' },
+      { name: '에너지음료 (레드불)', mg: 80, emoji: '⚡' },
+      { name: '차', mg: 25, emoji: '🍃' },
+    ],
+  },
 ]
+
+const DRINKS = DRINK_GROUPS.flatMap((g) => g.items)
+const CUSTOM_INDEX = DRINKS.length // sentinel: "직접 입력"
 
 const HALF_LIFE_HOURS = 5
 const ZERO_THRESHOLD_MG = 1
@@ -19,7 +38,7 @@ const SLEEP_HOUR = 23 // 11 PM
 
 let nextId = 1
 function makeEntry() {
-  return { id: nextId++, drinkIndex: 0, time: nowAsHHMM() }
+  return { id: nextId++, drinkIndex: 0, time: nowAsHHMM(), customMg: '' }
 }
 
 function nowAsHHMM() {
@@ -43,6 +62,11 @@ function toIntakeDate(timeStr, reference) {
   d.setHours(h, m, 0, 0)
   if (d > reference) d.setDate(d.getDate() - 1)
   return d
+}
+
+function doseOf(entry) {
+  if (entry.drinkIndex === CUSTOM_INDEX) return Number(entry.customMg) || 0
+  return DRINKS[entry.drinkIndex].mg
 }
 
 function remainingAt(doseMg, intakeDate, t) {
@@ -78,7 +102,7 @@ function App() {
     if (!snapshot) return null
 
     const doses = snapshot.map((e) => ({
-      dose: DRINKS[e.drinkIndex].mg,
+      dose: doseOf(e),
       intakeDate: toIntakeDate(e.time, now),
     }))
     const totalDose = doses.reduce((sum, d) => sum + d.dose, 0)
@@ -127,31 +151,54 @@ function App() {
         <div className="entries">
           {entries.map((entry, idx) => (
             <div className="entry" key={entry.id}>
-              <div className="entry-index">{idx + 1}</div>
+              <div className="entry-head">
+                <span className="entry-index">{idx + 1}</span>
+                <span className="entry-title">마신 음료</span>
+                {entries.length > 1 && (
+                  <button className="remove-btn" onClick={() => removeEntry(entry.id)} aria-label="삭제">
+                    ✕
+                  </button>
+                )}
+              </div>
 
-              <div className="entry-fields">
-                <select
-                  value={entry.drinkIndex}
-                  onChange={(e) => updateEntry(entry.id, { drinkIndex: Number(e.target.value) })}
-                >
-                  {DRINKS.map((d, i) => (
-                    <option key={d.name} value={i}>
-                      {d.emoji} {d.name} ({d.mg}mg)
-                    </option>
-                  ))}
-                </select>
+              <select
+                className="entry-select"
+                value={entry.drinkIndex}
+                onChange={(e) => updateEntry(entry.id, { drinkIndex: Number(e.target.value) })}
+              >
+                {DRINK_GROUPS.map((group) => (
+                  <optgroup label={group.label} key={group.label}>
+                    {group.items.map((d) => {
+                      const globalIndex = DRINKS.indexOf(d)
+                      return (
+                        <option key={d.name} value={globalIndex}>
+                          {d.emoji} {d.name} ({d.mg}mg)
+                        </option>
+                      )
+                    })}
+                  </optgroup>
+                ))}
+                <option value={CUSTOM_INDEX}>✏️ 직접 입력 (mg)</option>
+              </select>
+
+              <div className="entry-row2">
+                {entry.drinkIndex === CUSTOM_INDEX && (
+                  <input
+                    className="entry-custom-mg"
+                    type="number"
+                    min="0"
+                    placeholder="mg 입력"
+                    value={entry.customMg}
+                    onChange={(e) => updateEntry(entry.id, { customMg: e.target.value })}
+                  />
+                )}
                 <input
+                  className="entry-time"
                   type="time"
                   value={entry.time}
                   onChange={(e) => updateEntry(entry.id, { time: e.target.value })}
                 />
               </div>
-
-              {entries.length > 1 && (
-                <button className="remove-btn" onClick={() => removeEntry(entry.id)} aria-label="삭제">
-                  ✕
-                </button>
-              )}
             </div>
           ))}
 
@@ -159,6 +206,10 @@ function App() {
             + 마신 음료 추가
           </button>
         </div>
+
+        <p className="disclaimer">
+          ※ 브랜드/사이즈/추출 방식에 따라 카페인 함량은 크게 달라질 수 있어요. 정확한 값을 알고 있다면 "직접 입력"을 이용하세요.
+        </p>
 
         <button className="calc-btn" onClick={handleCalculate}>
           계산하기 🧮
@@ -196,6 +247,28 @@ function App() {
             )}
           </div>
         )}
+
+        <footer className="refs">
+          <p>
+            카페인 반감기는 평균 5~6시간이며 개인에 따라 1.5~9.5시간까지 차이가 날 수 있어요. FDA는 건강한 성인 기준
+            1일 400mg 이하를, 식약처는 임산부 300mg 이하를 권고합니다. 취침 4시간 이내 100mg 이상 섭취는 수면에
+            영향을 줄 수 있다는 연구도 있어요.
+          </p>
+          <p className="refs-links">
+            출처:{' '}
+            <a href="https://www.sleepfoundation.org/nutrition/how-long-does-it-take-caffeine-to-wear-off" target="_blank" rel="noreferrer">
+              Sleep Foundation
+            </a>
+            ,{' '}
+            <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11985402/" target="_blank" rel="noreferrer">
+              NIH/PMC 임상연구
+            </a>
+            ,{' '}
+            <a href="https://www.cdc.gov/niosh/work-hour-training-for-nurses/longhours/mod6/11.html" target="_blank" rel="noreferrer">
+              CDC/NIOSH
+            </a>
+          </p>
+        </footer>
       </div>
 
       <AdBanner position="bottom" />

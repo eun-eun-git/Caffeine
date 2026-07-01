@@ -13,6 +13,7 @@ function AdBanner({ position }) {
 
   return (
     <div className={`ad-banner ad-banner--${position}`}>
+      <span className="ad-label">Ad</span>
       <ins
         ref={insRef}
         className="adsbygoogle"
