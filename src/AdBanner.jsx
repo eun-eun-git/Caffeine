@@ -4,7 +4,6 @@ import React, { useEffect, useRef } from 'react'
 // are issued — replace these placeholders in your AdSense dashboard.
 const SLOT_BY_POSITION = {
   top: '0000000001',
-  middle: '0000000002',
   bottom: '0000000003',
 }
 

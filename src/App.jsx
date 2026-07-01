@@ -97,8 +97,6 @@ function App() {
           ※ 브랜드/사이즈/추출 방식에 따라 카페인 함량은 크게 달라질 수 있어요. 정확한 값을 알고 있다면 "직접 입력"을 이용하세요.
         </p>
 
-        <AdBanner position="middle" />
-
         <button className="calc-btn" onClick={handleCalculate} disabled={totalDose <= 0}>
           계산하기 🧮
         </button>
